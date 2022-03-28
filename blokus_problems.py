@@ -254,6 +254,8 @@ class ClosestLocationSearch:
         self.expanded = 0
         self.targets = targets.copy()
         "*** YOUR CODE HERE ***"
+        self.board = Board(board_w, board_h, 1, piece_list, starting_point)
+        self.start = starting_point
 
     def get_start_state(self):
         """
@@ -281,7 +283,33 @@ class ClosestLocationSearch:
         return backtrace
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        actions = []
+        my_targets = self.targets.copy()
+        my_targets.insert(0, self.start)
+        problem_temp = BlokusCoverProblem(self.board.board_w,
+                                          self.board.board_h,
+                                          self.board.piece_list,
+                                          self.start,
+                                          [my_targets[0]])
+        while len(my_targets) > 1:
+            current_target = self.find_closest_index(my_targets[1:],
+                                                     my_targets[0])
+            problem_temp.targets = [current_target]
+            moves = ucs(problem_temp)
+            actions.extend(moves)
+            for move in moves:
+                problem_temp.board.add_move(0, move)
+            my_targets.remove(current_target)
+            my_targets[0] = current_target
+        self.expanded = problem_temp.expanded
+        return actions
+
+    def find_closest_index(self, targets, main_target):
+        targets_dist = np.zeros(len(targets))
+        for index in range(len(targets)):
+            targets_dist[index] = abs(targets[index][0] - main_target[0]) + \
+                                  abs(targets[index][1] - main_target[1])
+        return targets[np.argmin(targets_dist)]
 
 
 class MiniContestSearch:
