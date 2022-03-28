@@ -162,25 +162,49 @@ def a_star_search(problem, heuristic=null_heuristic):
     Search the node that has the lowest combined cost and heuristic first.
     """
     "*** YOUR CODE HERE ***"
-    action_list = []
+    # action_list = []
+    # fringe = util.PriorityQueue()
+    # state = None
+    # fringe.push(problem.get_start_state(), 0)
+    # visited_dict = {problem.get_start_state(): [0, 0, 0]}
+    # while not fringe.isEmpty():
+    #     state = fringe.pop()
+    #     cost_to_state = visited_dict[state][2]
+    #     if problem.is_goal_state(state):
+    #         break
+    #     for successor in problem.get_successors(state):
+    #         if successor[0] not in visited_dict.keys():
+    #             visited_dict[successor[0]] = [successor, state,
+    #                                           heuristic(state, problem) + cost_to_state + successor[2]]
+    #             fringe.push(successor[0], heuristic(state, problem) + cost_to_state + successor[2])
+    # while state is not problem.get_start_state():
+    #     action_list.append(visited_dict[state][0][1])
+    #     state = visited_dict[state][1]
+    # return action_list[::-1]
     fringe = util.PriorityQueue()
-    state = None
     fringe.push(problem.get_start_state(), 0)
-    visited_dict = {problem.get_start_state(): [0, 0, 0]}
+    came_from = dict() #Dict[location, location,None]
+    cost_so_far = dict() #Dict[Location, cost so far to the location]
+    came_from[problem.get_start_state()] = None
+    cost_so_far[problem.get_start_state()] = 0
+    cur_state = None
     while not fringe.isEmpty():
-        state = fringe.pop()
-        cost_to_state = visited_dict[state][2]
-        if problem.is_goal_state(state):
+        cur_state = fringe.pop()
+        if problem.is_goal_state(cur_state):
             break
-        for successor in problem.get_successors(state):
-            if successor[0] not in visited_dict.keys():
-                visited_dict[successor[0]] = [successor, state,
-                                              heuristic(state, problem) + cost_to_state + successor[2]]
-                fringe.push(successor[0], heuristic(state, problem) + cost_to_state + successor[2])
-    while state is not problem.get_start_state():
-        action_list.append(visited_dict[state][0][1])
-        state = visited_dict[state][1]
+        for successor in problem.get_successors(cur_state):
+            new_cost = cost_so_far[cur_state] + successor[2]
+            if successor[0] not in cost_so_far.keys() or new_cost < cost_so_far[successor[0]]:
+                cost_so_far[successor[0]] = new_cost
+                fringe.push(successor[0], new_cost + heuristic(successor[0], problem))
+                came_from[successor[0]] = [cur_state, successor[1]]
+    action_list = []
+    while cur_state is not problem.get_start_state():
+        action_list.append(came_from[cur_state][1])
+        cur_state = came_from[cur_state][0]
     return action_list[::-1]
+
+
 
 
 # Abbreviations

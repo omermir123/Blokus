@@ -1,3 +1,5 @@
+import numpy as np
+
 from board import Board
 from search import SearchProblem, ucs
 import util
@@ -38,7 +40,8 @@ class BlokusFillProblem(SearchProblem):
         """
         # Note that for the search problem, there is only one player - #0
         self.expanded = self.expanded + 1
-        return [(state.do_move(0, move), move, 1) for move in state.get_legal_moves(0)]
+        return [(state.do_move(0, move), move, 1) for move in
+                state.get_legal_moves(0)]
 
     def get_cost_of_actions(self, actions):
         """
@@ -82,7 +85,8 @@ class BlokusCornersProblem(SearchProblem):
         """
         # Note that for the search problem, there is only one player - #0
         self.expanded = self.expanded + 1
-        return [(state.do_move(0, move), move, move.piece.get_num_tiles()) for move in state.get_legal_moves(0)]
+        return [(state.do_move(0, move), move, move.piece.get_num_tiles()) for
+                move in state.get_legal_moves(0)]
 
     def get_cost_of_actions(self, actions):
         """
@@ -108,15 +112,92 @@ def blokus_corners_heuristic(state, problem):
     inadmissible or inconsistent heuristics may find optimal solutions, so be careful.
     """
     "*** YOUR CODE HERE ***"
-    return sum(1 if corner == -1 else 0 for corner in
-               [state.state[-1][0], state.state[0][-1], state.state[-1][-1]])
+    # return sum(1 if corner == -1 else 0 for corner in
+    #            [state.state[-1][0], state.state[0][-1], state.state[-1][-1]])
+    # valid_tiles = [(x, y) for x, y in (range(state.board_w), range(
+    #     state.board_h)) if state.check_tile_legal(1, x, y)]
+    # valid_tiles = []
+    # for x in range(state.board_w):
+    #     for y in range(state.board_h):
+    #         if state.check_tile_legal(0, x, y):
+    #             valid_tiles.append((x, y))
+    # tile_dist = []
+    # for x, y in valid_tiles:
+    #     tile_dist.append([min(x, state.board_h - y) + state.board_h - y - x
+    #                       if min(x, state.board_h - y) == x else x - (
+    #                 state.board_h - y),
+    #
+    #                       min(state.board_w - x, state.board_h - y) +
+    #                       state.board_h - (y + state.board_w - x) if min(
+    #                           state.board_w - x, state.board_h - y) ==
+    #                                                                  state.board_w - x else state.board_w - (
+    #                               x + state.board_h - y),
+    #                       min(y, state.board_w - x) - state.board_w - x - y
+    #                       if min(y, state.board_w - x) == y else y - (
+    #                               state.board_w - x)])
+    # tile_dist = np.array(tile_dist)
+    # return np.min(tile_dist[:, 0]) + np.min(tile_dist[:, 1]) + np.min(
+    #     tile_dist[:, 2])
+    w, h = state.board_w, state.board_h
+    valid_tiles = []
+    # if not can_be_valid_board(state):
+    #     return h + w
+    for x in range(w):
+        for y in range(h):
+            if state.check_tile_legal(0, x, y):
+                if has_croos(x, y, state) and has_no_sides(x, y, state):
+                    valid_tiles.append((x, y))
+    if not valid_tiles:
+        return h + w + min(h, w)
+    tile_dist = []
+
+    for x, y in valid_tiles:
+        tile_dist.append([min(x, h - y) + (h - y - x if min(x, h - y) == x else x - (h - y)),
+                          min(w - x, y) + (y - (w - x) if min(w - x, y) == (w - x) else w - (x + y)),
+                          min(h - y, w - x) + (w - x - (h - y) if min(h - y, w - x) == h - y else h - y - (w - x))])
+    tile_dist = np.array(tile_dist)
+    return np.min(tile_dist[:, 0]) + np.min(tile_dist[:, 1]) + np.min(
+        tile_dist[:, 2]) + sum(1 if corner == -1 else 0 for corner in
+                               [state.state[-1][0], state.state[0][-1],
+                                state.state[-1][-1]])
+    # return sum(1 if corner == -1 else 0 for corner in
+    #                            [state.state[-1][0], state.state[0][-1],
+    #                             state.state[-1][-1]])
+
+
+def can_be_valid_board(state):
+    w, h = state.board_w, state.board_h
+    if state.get_position(w-2, h-1) == 0 or state.get_position(w-1, h-2) == 0 or state.get_position(w-2, 0) == 0\
+            or state.get_position(w-1, 1) == 0 or state.get_position(0, h-2) == 0 or state.get_position(1, h-1) == 0:
+        return False
+    return True
+
+
+def has_croos(x, y, state):
+    daigs_index = [(1, 1), (-1, -1), (-1, 1), (1, -1)]
+    for diag in daigs_index:
+        if 0 <= x + diag[0] < state.board_w and 0 <= y + diag[1] < state.board_h:
+            if state.get_position(x + diag[0], y + diag[1]) == 0:
+                return True
+    return False
+
+
+def has_no_sides(x, y, state):
+    sides_index = [(0, 1), (-1, 0), (1, 0), (0, -1)]
+    for side in sides_index:
+        if 0 <= x + side[0] < state.board_w and 0 <= y + side[1] < state.board_h:
+            if state.get_position(x + side[0], y + side[1]) != -1:
+                return False
+    return True
 
 
 class BlokusCoverProblem(SearchProblem):
-    def __init__(self, board_w, board_h, piece_list, starting_point=(0, 0), targets=[(0, 0)]):
+    def __init__(self, board_w, board_h, piece_list, starting_point=(0, 0),
+                 targets=[(0, 0)]):
         self.targets = targets.copy()
         self.expanded = 0
         "*** YOUR CODE HERE ***"
+        self.board = Board(board_w, board_h, 1, piece_list, starting_point)
 
     def get_start_state(self):
         """
@@ -126,7 +207,10 @@ class BlokusCoverProblem(SearchProblem):
 
     def is_goal_state(self, state):
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        for target in self.targets:
+            if state.get_position(target[1], target[0]) != 0:
+                return False
+        return True
 
     def get_successors(self, state):
         """
@@ -140,7 +224,8 @@ class BlokusCoverProblem(SearchProblem):
         """
         # Note that for the search problem, there is only one player - #0
         self.expanded = self.expanded + 1
-        return [(state.do_move(0, move), move, move.piece.get_num_tiles()) for move in state.get_legal_moves(0)]
+        return [(state.do_move(0, move), move, move.piece.get_num_tiles()) for
+                move in state.get_legal_moves(0)]
 
     def get_cost_of_actions(self, actions):
         """
@@ -150,12 +235,12 @@ class BlokusCoverProblem(SearchProblem):
         be composed of legal moves
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return sum(action.piece.get_num_tiles() for action in actions)
 
 
 def blokus_cover_heuristic(state, problem):
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    return sum(1 if state.get_position(target[1], target[0]) == -1 else 0 for target in problem.targets)
 
 
 class ClosestLocationSearch:
@@ -164,7 +249,8 @@ class ClosestLocationSearch:
     but the objective is speed, not optimality.
     """
 
-    def __init__(self, board_w, board_h, piece_list, starting_point=(0, 0), targets=(0, 0)):
+    def __init__(self, board_w, board_h, piece_list, starting_point=(0, 0),
+                 targets=(0, 0)):
         self.expanded = 0
         self.targets = targets.copy()
         "*** YOUR CODE HERE ***"
@@ -203,7 +289,8 @@ class MiniContestSearch:
     Implement your contest entry here
     """
 
-    def __init__(self, board_w, board_h, piece_list, starting_point=(0, 0), targets=(0, 0)):
+    def __init__(self, board_w, board_h, piece_list, starting_point=(0, 0),
+                 targets=(0, 0)):
         self.targets = targets.copy()
         "*** YOUR CODE HERE ***"
 
